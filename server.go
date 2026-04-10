@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"net"
 	"net/http"
 	"os"
@@ -56,12 +57,12 @@ func (s *server) start() error {
 		err := errors.New("Wrong type httpServer.Addr")
 		return err
 	}
-	fmt.Printf("Linko is running on http://localhost:%d", n.Port)
+	log.Printf("Linko is running on http://localhost:%d", n.Port)
 	return nil
 }
 
 func (s *server) shutdown(ctx context.Context) error {
-	fmt.Println("Linko is shutting down")
+	log.Println("Linko is shutting down")
 	return s.httpServer.Shutdown(ctx)
 }
 
