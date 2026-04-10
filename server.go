@@ -50,10 +50,18 @@ func (s *server) start() error {
 	if err := s.httpServer.Serve(ln); !errors.Is(err, http.ErrServerClosed) {
 		return err
 	}
+	addr := ln.Addr()
+	n, ok := addr.(*net.TCPAddr)
+	if !ok {
+		err := errors.New("Wrong type httpServer.Addr")
+		return err
+	}
+	fmt.Printf("Linko is running on http://localhost:%d", n.Port)
 	return nil
 }
 
 func (s *server) shutdown(ctx context.Context) error {
+	fmt.Println("Linko is shutting down")
 	return s.httpServer.Shutdown(ctx)
 }
 
