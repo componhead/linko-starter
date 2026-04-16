@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"flag"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -26,8 +28,16 @@ func main() {
 }
 
 func run(ctx context.Context, cancel context.CancelFunc, httpPort int, dataDir string) int {
-	stdLogger := initializeLogger()
-	accessLogger := initializeLogger()
+	stdLogger, err := initializeLogger()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to initialize stdLogger: %v\n", err)
+		return 1
+	}
+	accessLogger, err := initializeLogger()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to initialize stdLogger: %v\n", err)
+		return 1
+	}
 
 	st, err := store.New(dataDir, stdLogger)
 	if err != nil {
@@ -56,15 +66,16 @@ func run(ctx context.Context, cancel context.CancelFunc, httpPort int, dataDir s
 	return 0
 }
 
-func initializeLogger() *log.Logger {
+func initializeLogger() (*log.Logger, error) {
 	linkoFile := os.Getenv("LINKO_LOG_FILE")
 	var writer io.Writer = os.Stderr
 	if linkoFile != "" {
 		file, err := os.OpenFile(linkoFile, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o644)
 		if err != nil {
-			log.Fatalf("failed to open log file: %v", err)
+			return nil, fmt.Errorf("failed to open log file: %w", err)
 		}
-		writer = io.MultiWriter(os.Stderr, file)
+		w := bufio.NewWriterSize(file, 8192)
+		writer = io.MultiWriter(os.Stderr, w)
 	}
-	return log.New(writer, "", log.LstdFlags)
+	return log.New(writer, "", log.LstdFlags), nil
 }
