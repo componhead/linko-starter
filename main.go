@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"flag"
+	"io"
 	"log"
 	"os"
 	"os/signal"
@@ -25,13 +26,8 @@ func main() {
 }
 
 func run(ctx context.Context, cancel context.CancelFunc, httpPort int, dataDir string) int {
-	stdLogger := log.New(os.Stderr, "DEBUG: ", log.LstdFlags)
-	accesslog, err := os.OpenFile("linko.access.log", os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o644)
-	if err != nil {
-		stdLogger.Printf("failed to open access log: %v\n", err)
-		return 1
-	}
-	accessLogger := log.New(accesslog, "INFO: ", log.LstdFlags)
+	stdLogger := initializeLogger()
+	accessLogger := initializeLogger()
 
 	st, err := store.New(dataDir, stdLogger)
 	if err != nil {
@@ -58,4 +54,17 @@ func run(ctx context.Context, cancel context.CancelFunc, httpPort int, dataDir s
 		return 1
 	}
 	return 0
+}
+
+func initializeLogger() *log.Logger {
+	linkoFile := os.Getenv("LINKO_LOG_FILE")
+	var writer io.Writer = os.Stderr
+	if linkoFile != "" {
+		file, err := os.OpenFile(linkoFile, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0o644)
+		if err != nil {
+			log.Fatalf("failed to open log file: %v", err)
+		}
+		writer = io.MultiWriter(os.Stderr, file)
+	}
+	return log.New(writer, "", log.LstdFlags)
 }
